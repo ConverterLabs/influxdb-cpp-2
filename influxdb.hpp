@@ -17,13 +17,17 @@
 
 // for testing
 #include <iostream>
-
+//Missing in MinGW
+ # ifndef EAI_SYSTEM
+ #  define EAI_SYSTEM     -11   
+ # endif
+ 
 #define DEFAULT_PRECISION 5
-
 #ifdef _WIN32
-    #define NOMINMAX
+    #include <Ws2tcpip.h>
+    #include <ws2def.h>
     #include <windows.h>
-    #include <algorithm>
+    #include <algorithm>    
     #pragma comment(lib, "ws2_32")
     typedef struct iovec { void* iov_base; size_t iov_len; } iovec;
     inline __int64 writev(int sock, struct iovec* iov, int cnt) {
@@ -40,7 +44,6 @@
     #include <arpa/inet.h>
     #define closesocket close
 #endif
-
 namespace influxdb_cpp {
     struct server_info {
         std::string host_;
@@ -54,7 +57,16 @@ namespace influxdb_cpp {
             org_  = org;
             tkn_  = token;
             bkt_  = bucket;
-
+            #ifdef WIN32
+                    // Initialize Winsock
+                    int iResult;
+                    WSADATA wsaData;
+                    iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+                    if (iResult != 0) {
+                        std::cout << "WSAStartup failed: " << iResult << std::endl;
+                        return;
+                    }
+                #endif
             // please reference the IBM documentation for IPv4/IPv6 with questions
             // https://www.ibm.com/docs/en/i/7.2?topic=clients-example-ipv4-ipv6-client
             int resp = 0;
